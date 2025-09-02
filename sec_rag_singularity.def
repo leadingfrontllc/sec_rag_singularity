@@ -31,7 +31,7 @@ From: mambaorg/micromamba:1.5.8
     if [ ! -s /tmp/env.yml ]; then
         echo "[WARN] /tmp/env.yml not found; fetching from GitHub repo..."
         apt-get update && apt-get install -y --no-install-recommends ca-certificates curl
-        curl -fL "https://raw.githubusercontent.com/sindiris/sec-rag/main/env/sec_rag_utils_gpu.yml" -o /tmp/env.yml
+        curl -fL "https://raw.githubusercontent.com/leadingfrontllc/sec_rag_singularity/main/env/sec_rag_utils_gpu.yml" -o /tmp/env.yml
     fi
 
     sed -i 's/\r$//' /usr/local/bin/sec-rag
