@@ -34,10 +34,21 @@ From: mambaorg/micromamba:1.5.8
 
     # -------- Arelle from ZIP (root) --------
     cd /opt
-    ARELLE_VERSION="2.38.0"  # <-- change if you want a different tag
-    if ! curl -fsSL "https://github.com/Arelle/Arelle/archive/refs/tags/v${ARELLE_VERSION}.zip" -o arelle.zip; then
-        curl -fsSL "https://github.com/Arelle/Arelle/archive/refs/tags/${ARELLE_VERSION}.zip" -o arelle.zip
+    # Set ARELLE_VERSION to a tag like v2.37.50 to pin, or leave empty/"latest" to auto-detect.
+    ARELLE_VERSION="${ARELLE_VERSION:-latest}"
+    if [ "$ARELLE_VERSION" = "latest" ]; then
+      # Get latest tag name without jq (works on GH Actions)
+      TAG="$(curl -fsSL https://api.github.com/repos/Arelle/Arelle/releases/latest \
+             | grep -oP '"tag_name"\s*:\s*"\K[^"]')"
+    else
+      # Normalize to include leading 'v'
+      TAG="v${ARELLE_VERSION#v}"
     fi
+    echo "Using Arelle tag: ${TAG}"
+    # Try refs/tags zipball then fallback to short form
+    curl -fL "https://github.com/Arelle/Arelle/archive/refs/tags/${TAG}.zip" -o arelle.zip \
+      || curl -fL "https://github.com/Arelle/Arelle/archive/${TAG}.zip" -o arelle.zip
+
     unzip -q arelle.zip && rm arelle.zip
     mv Arelle-* Arelle
     ln -s /opt/Arelle/arelleCmdLine.py /usr/local/bin/arelle.py
