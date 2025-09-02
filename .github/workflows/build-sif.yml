@@ -1,0 +1,95 @@
+name: Build & Publish SIF to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag for the image (e.g., 0.1.0)"
+        required: false
+        default: "dev"
+  push:
+    branches: [ "main" ]
+    paths:
+      - "sec_rag_singularity.def"
+      - "env/**"
+      - "singularity/**"
+      - ".github/workflows/build-sif.yml"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/sec-rag
+  DEF_FILE: sec_rag_singularity.def
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write   # lets us push to GHCR with GITHUB_TOKEN for docker; apptainer uses docker creds
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute tags
+        id: tags
+        run: |
+          # prefer manual input tag, else use short SHA
+          TAG_INPUT="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG_INPUT" ]; then
+            TAG_INPUT="${GITHUB_SHA::7}"
+          fi
+          echo "TAG=$TAG_INPUT" >> $GITHUB_OUTPUT
+          echo "TAG_SHA=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Install Apptainer (from PPA)
+        run: |
+          set -eux
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common squashfs-tools uidmap fuse-overlayfs
+          sudo add-apt-repository -y ppa:apptainer/ppa
+          sudo apt-get update
+          sudo apt-get install -y apptainer
+
+      - name: Show Apptainer version
+        run: apptainer --version
+
+      - name: Build SIF (rooted build on runner)
+        run: |
+          set -eux
+          sudo apptainer build "sec-rag_${{ steps.tags.outputs.TAG }}.sif" "${{ env.DEF_FILE }}"
+
+      # Optional signing (uncomment to sign with a transient local key)
+      # - name: Sign SIF
+      #   run: |
+      #     set -eux
+      #     yes "" | singularity key new || true
+      #     singularity sign "sec-rag_${{ steps.tags.outputs.TAG }}.sif"
+
+      - name: Save SIF as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sec-rag_${{ steps.tags.outputs.TAG }}.sif
+          path: sec-rag_${{ steps.tags.outputs.TAG }}.sif
+          retention-days: 14
+
+      - name: Authenticate to GHCR for ORAS (docker-style login)
+        env:
+          CR_PAT: ${{ secrets.GHCR_PAT }}
+        run: |
+          set -eux
+          echo "$CR_PAT" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+
+      - name: Push SIF to GHCR (as OCI artifact)
+        run: |
+          set -eux
+          # apptainer can reuse docker credentials from ~/.docker/config.json
+          apptainer push "sec-rag_${{ steps.tags.outputs.TAG }}.sif" \
+            "oras://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.TAG }}"
+
+      - name: Also push a 'latest' tag (optional)
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          set -eux
+          # retag by re-pushing same blob to 'latest'
+          apptainer push "sec-rag_${{ steps.tags.outputs.TAG }}.sif" \
+            "oras://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
