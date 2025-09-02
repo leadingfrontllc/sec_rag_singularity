@@ -21,16 +21,19 @@ From: mambaorg/micromamba:1.5.8
 
 # Bring in your env YAML and the dispatcher exactly like Dockerfile COPY
 %files
-    env/sec_rag_utils_gpu.yml        /tmp/sec_rag_utils_gpu.yml
+    env/sec_rag_utils_gpu.yml        /tmp/env.yml
     singularity/entrypoint.sh       /usr/local/bin/sec-rag
 
 %post
     set -eux
 
-    if [ ! -s /usr/local/bin/sec-rag ]; then
-        echo "[WARN] /usr/local/bin/sec-rag missing; fetching from GitHub repo..."
-        curl -fL "https://raw.githubusercontent.com/leadingfrontllc/sec_rag_singularity/main/singularity/entrypoint.sh" -o /usr/local/bin/sec-rag
+    # Fallback: ensure /tmp/env.yml exists even if %files missed it
+    if [ ! -s /tmp/env.yml ]; then
+        echo "[WARN] /tmp/env.yml not found; fetching from GitHub repo..."
+        apt-get update && apt-get install -y --no-install-recommends ca-certificates curl
+        curl -fL "https://raw.githubusercontent.com/sindiris/sec-rag/main/env/sec_rag_utils_gpu.yml" -o /tmp/env.yml
     fi
+
     sed -i 's/\r$//' /usr/local/bin/sec-rag
     chmod 0755 /usr/local/bin/sec-rag
 
