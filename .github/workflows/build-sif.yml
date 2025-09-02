@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Version tag for the image (e.g., 0.1.0)"
+        description: "0.1.0"
         required: false
         default: "dev"
   push:
@@ -17,7 +17,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/sec-rag
+  IMAGE_NAME: leadingfrontllc/sec_rag_singularity
   DEF_FILE: sec_rag_singularity.def
 
 jobs:
