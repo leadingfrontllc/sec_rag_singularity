@@ -35,7 +35,9 @@ From: mambaorg/micromamba:1.5.8
     # -------- Arelle from ZIP (root) --------
     cd /opt
     ARELLE_VERSION="2.38.0"  # <-- change if you want a different tag
-    curl -fsSL "https://github.com/Arelle/Arelle/archive/refs/tags/${ARELLE_VERSION}.zip" -o arelle.zip
+    if ! curl -fsSL "https://github.com/Arelle/Arelle/archive/refs/tags/v${ARELLE_VERSION}.zip" -o arelle.zip; then
+        curl -fsSL "https://github.com/Arelle/Arelle/archive/refs/tags/${ARELLE_VERSION}.zip" -o arelle.zip
+    fi
     unzip -q arelle.zip && rm arelle.zip
     mv Arelle-* Arelle
     ln -s /opt/Arelle/arelleCmdLine.py /usr/local/bin/arelle.py
