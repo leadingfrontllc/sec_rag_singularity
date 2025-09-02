@@ -74,7 +74,7 @@ jobs:
 
       - name: Authenticate to GHCR for ORAS (docker-style login)
         env:
-          CR_PAT: ${{ secrets.GHCR_PAT }}
+          CR_PAT: ${{ secrets.SEC_RAG_SINGULARITY_GHCR_PAT }}
         run: |
           set -eux
           echo "$CR_PAT" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
