@@ -1,0 +1,66 @@
+name: sec_rag
+channels:
+  - conda-forge
+channel_priority: strict
+dependencies:
+  # Core
+  - python=3.11
+  - pip
+
+  # --- Parsing / HTML ---
+  - beautifulsoup4=4.13.3
+  - lxml
+  - html5lib
+  - cssselect
+  - html2text=2024.2.26          # if this fails, use: python-html2text
+  - chardet
+  - charset-normalizer
+
+  # --- SEC/RAG helpers (conda-first) ---
+  - huggingface_hub              # underscore (conda name)
+  - fsspec
+  - cryptography
+  - pyyaml
+  - ujson
+  - rapidfuzz
+  - regex
+  - networkx
+  - nltk
+  - isodate
+  - pyparsing
+  - pyahocorasick
+
+  # --- PDF stack ---
+  - pdfminer.six                 # dot (conda name)
+  - pypdfium2=4.30.0
+  # - pdfplumber                 # optional; enable only if needed
+
+  # --- Imaging ---
+  - pillow=11.0.0
+
+  # --- Data/Utils ---
+  - pandas
+  - numpy
+  - python-dateutil
+  - tzdata
+  - requests
+  - orjson
+  - filelock
+  - psutil
+  - tqdm
+  - rich
+  - typer
+  - click
+  - uvloop                       # fine on Linux
+
+  # --- LLM stack ---
+  - transformers=4.44.2
+  - sentence-transformers=2.7.0  # conda-forge shim (wraps pip cleanly)
+
+  # --- PyPI-only or very new pins ---
+  - pip:
+      - selectolax==0.3.31       # PyPI-only fast HTML parser
+      # If you need bleeding-edge 2025.x versions, move them here, e.g.:
+      # - html2text==2025.4.15
+      # - pdfminer-six==20250506
+      # - transformers==4.53.0

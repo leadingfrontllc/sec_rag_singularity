@@ -1,0 +1,66 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.8
+
+%labels
+    Maintainer   Your Name
+    Title        SEC-RAG + Arelle (micromamba env + dispatcher)
+    Description  Singularity build mirroring the Dockerfile pattern
+
+%help
+    Examples:
+      apptainer exec sec-rag_0.1.sif sec-rag help
+      apptainer exec -B $PWD:/work sec-rag_0.1.sif sec-rag arelle --help
+      apptainer exec --cleanenv -B $PWD:/work -B $PWD/sec_rag_codebase:/app/sec_rag \
+        sec-rag_0.1.sif python /app/sec_rag/sec_phase_1_parser.py /work/testing/file.html
+
+%environment
+    export MAMBA_DOCKERFILE_ACTIVATE=1
+    export CONDA_DEFAULT_ENV=sec_rag
+    export PATH=/opt/conda/envs/sec_rag/bin:$PATH
+    export PYTHONUNBUFFERED=1
+
+# Bring in your env YAML and the dispatcher exactly like Dockerfile COPY
+%files
+    env/sec_rag_utils_gpu.yml        /tmp/env.yml
+    singularity/entrypoint.sh       /usr/local/bin/sec-rag
+
+%post
+    set -euo pipefail
+
+    # -------- OS deps (root) --------
+    apt-get update
+    apt-get install -y --no-install-recommends curl ca-certificates unzip tini
+    rm -rf /var/lib/apt/lists/*
+
+    # -------- Arelle from ZIP (root) --------
+    cd /opt
+    ARELLE_VERSION="2.38.0"  # <-- change if you want a different tag
+    curl -fsSL "https://github.com/Arelle/Arelle/archive/refs/tags/${ARELLE_VERSION}.zip" -o arelle.zip
+    unzip -q arelle.zip && rm arelle.zip
+    mv Arelle-* Arelle
+    ln -s /opt/Arelle/arelleCmdLine.py /usr/local/bin/arelle.py
+
+    # Ensure /opt is readable/writable by the micromamba user if needed
+    chown -R mambauser:mambauser /opt || true
+
+    # -------- Conda env (as root is OK in Singularity) --------
+    micromamba create -y -n sec_rag -f /tmp/env.yml
+    micromamba clean -a -y
+
+    # -------- Dispatcher entrypoint --------
+    # Normalize CRLF if the file came from Windows checkout
+    sed -i 's/\r$//' /usr/local/bin/sec-rag
+    chmod 0755 /usr/local/bin/sec-rag
+
+%runscript
+    # What runs when you do: apptainer run sec-rag_0.1.sif [args...]
+    exec /usr/local/bin/sec-rag "$@"
+
+# Nice shortcuts: apptainer run --app arelle sec-rag_0.1.sif --help
+%apprun arelle
+    exec python /opt/Arelle/arelleCmdLine.py "$@"
+
+# apptainer run --app sec-parse sec-rag_0.1.sif --input ...
+%apprun sec-parse
+    exec python -m sec_rag.cli "$@"
+
