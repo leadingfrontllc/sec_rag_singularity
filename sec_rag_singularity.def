@@ -27,6 +27,13 @@ From: mambaorg/micromamba:1.5.8
 %post
     set -eux
 
+    if [ ! -s /usr/local/bin/sec-rag ]; then
+        echo "[WARN] /usr/local/bin/sec-rag missing; fetching from GitHub repo..."
+        curl -fL "https://raw.githubusercontent.com/leadingfrontllc/sec_rag_singularity/main/singularity/entrypoint.sh" -o /usr/local/bin/sec-rag
+    fi
+    sed -i 's/\r$//' /usr/local/bin/sec-rag
+    chmod 0755 /usr/local/bin/sec-rag
+
     # -------- OS deps (root) --------
     apt-get update
     apt-get install -y --no-install-recommends curl ca-certificates unzip tini
